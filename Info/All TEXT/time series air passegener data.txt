@@ -1,0 +1,100 @@
+#time series air passegener data
+
+
+#1
+import pandas as pd
+import numpy as np
+import matplotlib.pylab as plt
+%matplotlib inline
+from matplotlib.pylab import rcParams
+from datetime import datetime
+import warnings
+import statsmodels.api as sm
+warnings.filterwarnings('ignore')
+
+#2
+data=pd.read_csv('AirPassengers.csv')
+data.shape
+
+#3
+data['Month']=pd.to_datetime(data['Month'], infer_datetime_format=True)
+data=data.set_index(['Month'])
+data.head()
+
+
+#4
+plt.figure(figsize=(20,10))
+plt.xlabel("Month")
+plt.ylabel("Number of Air Passengers")
+plt.plot(data)
+
+#5
+rolmean=data.rolling(window=12).mean()
+rolstd=data.rolling(window=12).std()
+print(rolmean.head(15))
+print(rolstd.head(15))
+
+
+#6
+plt.figure(figsize=(20,10))
+actual=plt.plot(data, color='red', label='Actual')
+mean_6=plt.plot(rolmean, color='green', label='Rolling Mean') 
+std_6=plt.plot(rolstd, color='black', label='Rolling Std')
+plt.legend(loc='best')
+plt.title('Rolling Mean & Standard Deviation')
+plt.show(block=False)
+
+
+#7
+plt.figure(figsize=(20,10))
+data_log=np.log(data)
+plt.plot(data_log)
+
+
+#8
+rolling_mean = data_log.rolling(window=12).mean()
+df_log_minus_mean = data_log - rolling_mean
+df_log_minus_mean.dropna(inplace=True)
+#get_stationarity(df_log_minus_mean)
+plt.plot(df_log_minus_mean)
+
+
+#9
+plt.figure(figsize=(20,10))
+MAvg=data_log.rolling(window=12).mean()
+MStd=data_log.rolling(window=12).std()
+plt.plot(data_log)
+plt.plot(MAvg, color='blue')
+
+
+#10
+plt.figure(figsize=(20,10))
+data_shift=data_log-data_log.shift()
+plt.plot(data_shift)
+
+
+#11
+
+import statsmodels.api as sm
+model = sm.tsa.arima.ARIMA(data,order=(2,1,2))
+#model = ARIMA(data, order=(2,1,2))
+results = model.fit()
+plt.plot(data)
+plt.plot(results.fittedvalues, color='red')
+
+
+#12
+train = data.iloc[:len(data)-12]
+test = data.iloc[len(data)-12:] # set one year(12 months) for testing
+
+
+#13
+start = len(train)
+end = len(train) + len(test) - 1
+  
+# Predictions for one-year against the test set
+predictions = results.predict(start, end, typ = 'levels').rename("Predictions")
+  
+# plot predictions and actual values
+predictions.plot(legend = True)
+test['#Passengers'].plot(legend = True)

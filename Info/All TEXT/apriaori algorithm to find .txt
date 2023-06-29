@@ -1,0 +1,89 @@
+# Apply a-priori algorithm to find frequently occurring items from given data and generate strong association rules using support and confidence thresholds.
+
+#1
+pip install apyori
+
+
+#2
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from apyori import apriori
+
+
+#3
+store_data = pd.read_csv("/content/basket_analysis.csv", header=None)
+display(store_data.head(15))
+print(store_data.shape)
+
+
+#4 
+transactions = []
+for i in range(0, len(store_data)):
+    transactions.append([str(store_data.values[i,j]) for j in range(0, len(store_data.columns))])
+
+#5
+association_rules = apriori(transactions, min_support=0.5, min_confidence=0.7, min_lift=1.2, min_length=2)
+association_results = list(association_rules)
+
+
+#6
+print(len(association_results ))
+
+
+#7
+print(association_results )
+
+
+#8
+print("There are {} Relation derived.".format(len(association_results)))
+
+
+
+#9
+for i in range(0, len(association_results)):
+    print(association_results[i][0])
+
+#10
+# Import the transaction encoder function from mlxtend
+from mlxtend.preprocessing import TransactionEncoder
+
+# Instantiate transaction encoder and identify unique items
+encoder = TransactionEncoder().fit(transactions)
+
+# One-hot encode transactions
+onehot = encoder.transform(transactions)
+
+# Convert one-hot encoded data to DataFrame
+onehot = pd.DataFrame(onehot, columns = encoder.columns_).drop('nan', axis=1)
+
+# Print the one
+onehot.head()
+
+
+#11
+# Import the association rules function
+from mlxtend.frequent_patterns import apriori, association_rules
+
+# Compute frequent itemsets using the Apriori algorithm
+frequent_itemsets = apriori(onehot, min_support = 0.5, 
+                            max_len = 2, use_colnames = True)
+
+# Compute all association rules using confidence
+rules = association_rules(frequent_itemsets, 
+                            metric = "confidence", 
+                            min_threshold = 0.7)
+
+# Print association rules
+rules.info()
+
+
+
+#12
+rules.head()
+
+
+
+
+
+

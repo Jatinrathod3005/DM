@@ -1,0 +1,127 @@
+# Predict the number of bicycle trips across Seattle's Fremont Bridge based on weather, season, and other factors and also Figure out what we can learn about people in Seattle from hourly commute data. (The daily or hourly bicycle counts can be downloaded from http://data.seattle.gov/)
+
+
+#1
+%matplotlib inline
+import matplotlib.pyplot as plt
+import seaborn as sns; sns.set()
+import numpy as np
+
+#2
+import pandas as pd
+data = pd.read_csv('/content/Fremont_Bridge_Bicycle_Counter.csv', index_col='Date', parse_dates=True)
+data.head()
+
+#3
+data.columns = ["Total","East", "West"]
+data["Total"] = data["West"] + data["East"] 
+data.head()
+
+
+#4
+import matplotlib.pyplot as plt
+import seaborn
+seaborn.set()
+data.plot()
+plt.ylabel("Hourly Bicycle count")
+plt.show()
+
+
+#5
+weekly = data.resample("W").sum()
+weekly.plot(style=[':', '--', '-'])
+plt.ylabel('Weekly bicycle count')
+plt.show()
+
+
+#6
+counts = data
+weather = pd.read_csv('/content/BicycleWeather.csv', index_col='DATE', parse_dates=True)
+
+
+#7
+counts.head()
+
+
+#8
+weather.head()
+
+
+#9
+daily = counts.resample('d').sum()
+daily['Total'] = daily.sum(axis=1)
+daily = daily[['Total']] # remove other columns
+
+#10
+daily.head()
+
+
+#11
+days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+for i in range(7):
+    daily[days[i]] = (daily.index.dayofweek == i).astype(float)
+
+
+#12
+daily.head()
+
+#13
+
+from pandas.tseries.holiday import USFederalHolidayCalendar
+
+
+#14
+cal = USFederalHolidayCalendar()
+holidays = cal.holidays('2012', '2016')
+
+
+#15
+daily = daily.join(pd.Series(1, index=holidays, name='holiday'))  
+daily['holiday'].fillna(0, inplace=True)
+
+
+#16
+pd.datetime(2000, 12, 21)
+
+#17
+# temperatures are in 1/10 deg C; convert to C
+weather['TMIN'] /= 10
+weather['TMAX'] /= 10
+weather['Temp (C)'] = 0.5 * (weather['TMIN'] + weather['TMAX'])
+
+# precip is in 1/10 mm; convert to inches
+weather['PRCP'] /= 254
+weather['dry day'] = (weather['PRCP'] == 0).astype(int)
+daily = daily.join(weather[['PRCP', 'Temp (C)', 'dry day']])
+
+#18
+daily['annual'] = (daily.index - daily.index[0]).days / 365.
+
+#19
+
+daily.head()
+
+
+#20
+# Drop any rows with null values
+daily.dropna(axis=0, how='any', inplace=True)
+
+column_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'holiday',
+                 'PRCP', 'dry day', 'Temp (C)', 'annual']
+X = daily[column_names]
+y = daily['Total']
+
+from sklearn.linear_model import LinearRegression
+model = LinearRegression(fit_intercept=False)
+model.fit(X, y)
+daily['predicted'] = model.predict(X)
+
+
+#21
+daily[['Total', 'predicted']].plot(alpha=0.5);
+
+
+#22
+r2_score = model.score(X, y)
+print("R-squared:", r2_score)
+

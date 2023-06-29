@@ -1,0 +1,64 @@
+Apply ARIMA model to perform time series analysis on COVID- India Dataser from Kaggle
+
+
+
+#1
+import pandas as pd
+import seaborn as sns # informative statistical graphics.
+import statsmodels.api as sm #for ARIMA and SARIMAX
+import datetime
+from datetime import timedelta
+
+df = pd.read_csv('/content/covid_19_india.csv')
+
+#2
+df= df.drop(labels = ["Sno","State","Time","Cured","Deaths"], axis= 1, inplace= False)
+
+#3
+df.head()
+
+#4
+import matplotlib.pyplot as plt
+sns.lineplot(x="Date", y="Confirmed",legend = 'full' , data=df)
+plt.title("Confirmed Cases Over Time")
+plt.xticks(rotation=45)
+plt.show()
+
+#5
+import matplotlib.pyplot as plt
+sns.lineplot(x="Date", y="Confirmed",legend = 'full' , data=df, ci=None)
+plt.title("Confirmed Cases Over Time")
+plt.xticks(rotation=90)
+plt.show()
+
+#6
+df['Date'] = pd.to_datetime(df['Date'])
+df.set_index('Date', inplace=True)
+
+
+#7
+df = df.resample('W').sum()
+
+#8
+train_data = df[:int(0.9*(len(df)))]
+test_data = df[int(0.9*(len(df))):]
+
+#9
+import statsmodels.api as sm
+
+#10
+model = sm.tsa.arima.ARIMA(train_data, order=(2,1,2))
+model_fit = model.fit()
+
+#11
+predictions = model_fit.predict(start=len(train_data), end=len(train_data)+len(test_data)-1, typ='levels')
+
+#12
+plt.figure(figsize=(10,6))
+plt.plot(train_data, label='Training Data')
+plt.plot(test_data, label='Testing Data')
+plt.plot(predictions, label='Predicted Data')
+plt.legend()
+plt.show()
+
+
